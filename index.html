@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Timer 5 Menit</title>
+    <!-- FontAwesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #2E8B57, #228B22);
+            /* Gradient hijau islami */
+            transition: background 0.5s ease;
+            font-family: 'Amiri', serif;
+            /* Font islami */
+            color: #FFD700;
+            /* Emas untuk teks */
+            position: relative;
+        }
+
+        /* Elemen islami sederhana: bismillah di background */
+        body::before {
+            content: "بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ";
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 1.5rem;
+            opacity: 0.3;
+            color: #FFD700;
+            pointer-events: none;
+        }
+
+        .timer-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: -100px;
+            /* Sedikit margin bawah */
+        }
+
+        .timer-wrapper {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #timer {
+            font-size: 8rem;
+            font-weight: bold;
+            letter-spacing: 3px;
+            user-select: none;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            z-index: 2;
+        }
+
+        /* Progress circle SVG */
+        .progress-circle {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 400px;
+            /* Sesuaikan ukuran agar mengelilingi timer */
+            height: 400px;
+            z-index: 1;
+        }
+
+        .progress-circle svg {
+            width: 100%;
+            height: 100%;
+            transform: rotate(-90deg);
+            /* Mulai dari atas */
+        }
+
+        .progress-circle circle {
+            fill: none;
+            stroke: #FFD700;
+            /* Warna emas untuk progress */
+            stroke-width: 8;
+            stroke-linecap: round;
+            stroke-dasharray: 1131;
+            /* Circumference: 2 * pi * r, r=180 */
+            stroke-dashoffset: 1131;
+            /* Mulai dari 0 progress */
+            transition: stroke-dashoffset 0.5s ease;
+            /* Transisi awal */
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            bottom: 0;
+            /* Jarak antar tombol */
+            justify-content: center;
+            align-items: center;
+            margin-top: 150px;
+            /* Jarak dari timer */
+            z-index: 3;
+            /* Pastikan di depan lingkaran */
+        }
+
+        button {
+            padding: 12px 20px;
+            /* Padding lebih kecil untuk simpel */
+            border: 2px solid #FFD700;
+            border-radius: 8px;
+            /* Radius lebih kecil */
+            cursor: pointer;
+            font-size: 1rem;
+            /* Font size lebih kecil */
+            font-weight: bold;
+            transition: transform 0.2s ease, background 0.3s, box-shadow 0.3s;
+            background: rgba(46, 139, 87, 0.8);
+            color: #FFFFFF;
+            /* Teks putih */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            /* Hapus posisi absolut, biarkan normal dalam flex */
+        }
+
+        button:hover {
+            transform: scale(1.05);
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        /* Tooltip untuk hover */
+        button[title]:hover::after {
+            content: attr(title);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: #FFD700;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            z-index: 10;
+            margin-bottom: 5px;
+        }
+
+        /* Icon FontAwesome */
+        #playPause i {
+            margin-right: 5px;
+        }
+
+        #reset i {
+            margin-right: 5px;
+        }
+
+        #skip i {
+            margin-right: 5px;
+        }
+
+        #back i {
+            margin-right: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="timer-container">
+        <div class="timer-wrapper">
+            <div id="timer">05:00</div>
+            <div class="progress-circle">
+                <svg>
+                    <circle cx="200" cy="200" r="180"></circle>
+                </svg>
+            </div>
+        </div>
+        <div class="controls">
+            <button id="playPause" title="Mulai atau jeda timer"><i class="fas fa-play"></i> Play</button>
+            <button id="reset" title="Reset timer ke 5 menit"><i class="fas fa-redo"></i> Reset</button>
+            <button id="skip" title="Kembali 1 menit"><i class="fas fa-backward"></i> Back 1m</button>
+            <button id="back" title="Lewati 1 menit"><i class="fas fa-forward"></i> Skip 1m</button>
+        </div>
+    </div>
+
+    <audio id="sound" src="sound.mp3" preload="auto"></audio>
+
+    <script>
+        const timerDisplay = document.getElementById("timer");
+        const playPauseBtn = document.getElementById("playPause");
+        const resetBtn = document.getElementById("reset");
+        const skipBtn = document.getElementById("skip");
+        const backBtn = document.getElementById("back");
+        const sound = document.getElementById("sound");
+        const progressCircle = document.querySelector('.progress-circle circle');
+
+        let duration = 5 * 60; // 5 menit (300 detik)
+        let timeLeft = duration;
+        let timerInterval = null;
+        let isRunning = false;
+        let animationStartTime = null;
+
+        function updateDisplay() {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            timerDisplay.textContent =
+                `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+            updateBackground();
+        }
+
+        function updateBackground() {
+            if (timeLeft > 60) {
+                document.body.style.background = "linear-gradient(135deg, #2E8B57, #228B22)";
+            } else if (timeLeft <= 60 && timeLeft > 54) {
+                document.body.style.background = "linear-gradient(135deg, #FFD700, #FFA500)";
+            } else if (timeLeft <= 54 && timeLeft > 50) {
+                document.body.style.background = "linear-gradient(135deg, #DC143C, #B22222)";
+            } else {
+                document.body.style.background = "linear-gradient(135deg, #000000, #333333)";
+            }
+        }
+
+        function updateProgress() {
+            if (!isRunning || timeLeft === duration) {
+                progressCircle.style.strokeDashoffset = 1131; // Reset to 0 progress
+                return;
+            }
+            const elapsed = duration - timeLeft;
+            const progress = elapsed / duration;
+            const offset = 1131 - (progress * 1131);
+            progressCircle.style.strokeDashoffset = offset;
+        }
+
+        function playSound() {
+            sound.currentTime = 0;
+            sound.play().catch(() => { }); // mencegah error autoplay
+        }
+
+        function stopSound() {
+            sound.pause();
+            sound.currentTime = 0;
+        }
+
+        function startTimer() {
+            if (isRunning) return;
+            isRunning = true;
+            playPauseBtn.innerHTML = '<i class="fas fa-pause"></i> Pause';
+            animationStartTime = Date.now();
+
+            timerInterval = setInterval(() => {
+                if (timeLeft > 0) {
+                    timeLeft--;
+                    updateDisplay();
+                    updateProgress();
+                    if (timeLeft === 0) {
+                        playSound();
+                        stopTimer();
+                    }
+                }
+            }, 1000);
+        }
+
+        function pauseTimer() {
+            if (!isRunning) return;
+            clearInterval(timerInterval);
+            isRunning = false;
+            playPauseBtn.innerHTML = '<i class="fas fa-play"></i> Play';
+            stopSound();
+        }
+
+        function resetTimer() {
+            pauseTimer();
+            timeLeft = duration;
+            updateDisplay();
+            updateProgress();
+        }
+
+        function skipOneMinute() {
+            if (timeLeft + 60 <= duration) {
+                timeLeft += 60;
+            } else {
+                timeLeft = duration;
+            }
+            updateDisplay();
+            updateProgress();
+        }
+
+        function backOneMinute() {
+            if (timeLeft - 60 >= 0) {
+                timeLeft -= 60;
+            } else {
+                timeLeft = 0;
+            }
+            updateDisplay();
+            updateProgress();
+        }
+
+        // --- event listeners ---
+        playPauseBtn.addEventListener("click", () => {
+            if (isRunning) {
+                pauseTimer();
+            } else {
+                startTimer();
+            }
+        });
+
+        resetBtn.addEventListener("click", resetTimer);
+        skipBtn.addEventListener("click", skipOneMinute);
+        backBtn.addEventListener("click", backOneMinute);
+
+        updateDisplay();
+        updateProgress();
+    </script>
+</body>
+
+</html>
