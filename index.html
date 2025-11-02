@@ -193,6 +193,9 @@
         let isRunning = false;
         let animationStartTime = null;
 
+        // Set volume suara lebih kecil (0.5 = 50% volume)
+        sound.volume = 0.5;
+
         function updateDisplay() {
             const minutes = Math.floor(timeLeft / 60);
             const seconds = timeLeft % 60;
@@ -245,6 +248,10 @@
                     timeLeft--;
                     updateDisplay();
                     updateProgress();
+                    // Tambahkan pemutaran suara pada waktu tertentu
+                    if (timeLeft === 60 || timeLeft === 30 || timeLeft === 10) {
+                        playSound();
+                    }
                     if (timeLeft === 0) {
                         playSound();
                         stopTimer();
@@ -307,3 +314,4 @@
 </body>
 
 </html>
+
